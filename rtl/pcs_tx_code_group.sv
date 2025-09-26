@@ -87,7 +87,7 @@ module pcs_tx_code_group
         end
     end
     
-    // Global reset condition per IEEE 802.3
+    // Global reset condition
     logic global_reset_condition;
     assign global_reset_condition = power_on || mr_main_reset;
     
