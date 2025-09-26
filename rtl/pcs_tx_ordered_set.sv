@@ -1,6 +1,6 @@
 /*
  * PCS Transmit Ordered Set State Machine
- * IEEE 802.3-2022 Clause 36 Implementation
+ * IEEE 802.3-2022 Clause 36 Implementation - Figure 36-5
  * 
  * This module implements the PCS transmit ordered set state machine as specified
  * in Figure 36-5 of IEEE 802.3-2022. It generates the appropriate ordered sets
@@ -30,7 +30,7 @@ module pcs_tx_ordered_set
     input  logic [7:0]   TXD,
     
     // Timing and Control Signals
-    input  logic         tx_oset_indicate, // Ordered set timing indication
+    input  logic         TX_OSET_indicate, // Ordered set timing indication
     input  logic         tx_even,          // Even/odd code group alignment
     input  logic         receiving,        // Collision detection input
     
@@ -71,7 +71,7 @@ module pcs_tx_ordered_set
 	
 	// Global reset/initialization condition
 	logic global_reset_condition;
-	assign global_reset_condition = power_on || mr_main_reset || (xmitCHANGE && tx_oset_indicate && !tx_even);
+	assign global_reset_condition = power_on || mr_main_reset || (xmitCHANGE && TX_OSET_indicate && !tx_even);
 	
 	// Next State Logic
 	always_comb 
@@ -100,38 +100,38 @@ module pcs_tx_ordered_set
 									end
 
 				IDLE: 				begin
-										if (xmit == XMIT_DATA && tx_oset_indicate && !TX_EN && !TX_ER)
+										if (xmit == XMIT_DATA && TX_OSET_indicate && !TX_EN && !TX_ER)
 											next_state = XMIT_DATA;
 									end
 
 				XMIT_DATA: 			begin
-										if (TX_EN && !TX_ER && tx_oset_indicate)
+										if (TX_EN && !TX_ER && TX_OSET_indicate)
 											next_state = START_OF_PACKET;
 										else if (TX_EN && TX_ER)
 											next_state = ALIGN_ERR_START;
-										else if (!assert_lpidle && !TX_EN && tx_oset_indicate)
+										else if (!assert_lpidle && !TX_EN && TX_OSET_indicate)
 											next_state = XMIT_DATA;
-										else if (assert_lpidle && tx_oset_indicate)
+										else if (assert_lpidle && TX_OSET_indicate)
 											next_state = XMIT_LPIDLE;  // EEE Transition B
 									end
 
 				ALIGN_ERR_START: 	begin
-										if (tx_oset_indicate)
+										if (TX_OSET_indicate)
 											next_state = START_ERROR;
 									end
 
 				START_ERROR: 		begin
-										if (tx_oset_indicate)
+										if (TX_OSET_indicate)
 											next_state = TX_DATA_ERROR;
 									end
 
 				TX_DATA_ERROR: 		begin
-										if (tx_oset_indicate)
+										if (TX_OSET_indicate)
 											next_state = TX_PACKET;
 									end
 
 				START_OF_PACKET: 	begin
-										if (tx_oset_indicate)
+										if (TX_OSET_indicate)
 											next_state = TX_PACKET;
 									end
 
@@ -145,54 +145,54 @@ module pcs_tx_ordered_set
 									end
 
 				TX_DATA: 			begin
-										if (tx_oset_indicate)
+										if (TX_OSET_indicate)
 											next_state = TX_PACKET;
 									end
 
 				END_OF_PACKET_NOEXT: 	begin
-											if (tx_oset_indicate)
+											if (TX_OSET_indicate)
 												next_state = EPD2_NOEXT;
 										end
 
 				EPD2_NOEXT: 		begin
-										if (!tx_even && tx_oset_indicate)
+										if (!tx_even && TX_OSET_indicate)
 											next_state = XMIT_DATA;
-										else if (tx_even && tx_oset_indicate)
+										else if (tx_even && TX_OSET_indicate)
 											next_state = EPD3;
 									end
 
 				EPD3: 				begin
-										if (tx_oset_indicate)
+										if (TX_OSET_indicate)
 											next_state = XMIT_DATA;
 									end
 
 				END_OF_PACKET_EXT: 	begin
-										if (!TX_ER && tx_oset_indicate)
+										if (!TX_ER && TX_OSET_indicate)
 											next_state = EXTEND_BY_1;
-										else if (TX_ER && tx_oset_indicate)
+										else if (TX_ER && TX_OSET_indicate)
 											next_state = CARRIER_EXTEND;
 									end
 
 				EXTEND_BY_1: 		begin
-										if (tx_oset_indicate)
+										if (TX_OSET_indicate)
 											next_state = EPD2_NOEXT;
 									end
 
 				CARRIER_EXTEND: 	begin
-										if (!TX_EN && !TX_ER && tx_oset_indicate)
+										if (!TX_EN && !TX_ER && TX_OSET_indicate)
 											next_state = EXTEND_BY_1;
-										else if (TX_EN && TX_ER && tx_oset_indicate)
+										else if (TX_EN && TX_ER && TX_OSET_indicate)
 											next_state = START_ERROR;
-										else if (TX_EN && !TX_ER && tx_oset_indicate)
+										else if (TX_EN && !TX_ER && TX_OSET_indicate)
 											next_state = START_OF_PACKET;
-										// else if (!TX_EN && TX_ER && tx_oset_indicate) // implicit
+										// else if (!TX_EN && TX_ER && TX_OSET_indicate) // implicit
 										//	next_state = CARRIER_EXTEND;
 									end
 
 				XMIT_LPIDLE: 		begin
-										if (!assert_lpidle && tx_oset_indicate)
+										if (!assert_lpidle && TX_OSET_indicate)
 											next_state = XMIT_DATA;  // EEE Transition C
-										// else if (assert_lpidle && tx_oset_indicate) // implicit
+										// else if (assert_lpidle && TX_OSET_indicate) // implicit
 										//	next_state = XMIT_LPIDLE;
 									end
 			

@@ -92,19 +92,20 @@ module encoder_8b10b (
             new_disparity = running_disparity; // Neutral - maintain current
     end
     
+    // Output current disparity state
+    assign disparity_out = running_disparity;
+    
     always_ff @(posedge clk or negedge rst_n) 
 	begin
         if (!rst_n) 
 		begin
             running_disparity <= 1'b0;  // Start with negative disparity
             code_group_out <= 10'h000;
-            disparity_out <= 1'b0;
         end 
 		else if (enable) 
 		begin
             code_group_out <= selected_code_group;
             running_disparity <= new_disparity;
-            disparity_out <= running_disparity;
         end
     end
 
