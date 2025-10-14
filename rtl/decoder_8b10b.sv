@@ -47,11 +47,9 @@ module decoder_8b10b (
     always_comb 
 	begin
         // Lookup in both disparity tables
-        decode_entry_correct_rd = running_disparity ? decode_table_rd_pos[code_group_in] : 
-                                                     decode_table_rd_neg[code_group_in];
-        decode_entry_wrong_rd   = running_disparity ? decode_table_rd_neg[code_group_in] : 
-                                                     decode_table_rd_pos[code_group_in];
-        
+        decode_entry_correct_rd = running_disparity ? decode_table_rd_pos[code_group_in] : decode_table_rd_neg[code_group_in];
+        decode_entry_wrong_rd   = running_disparity ? decode_table_rd_neg[code_group_in] : decode_table_rd_pos[code_group_in];
+
         // Extract fields from lookup results
         code_found_correct_rd    = decode_entry_correct_rd[9];
         is_control_correct_rd    = decode_entry_correct_rd[8];

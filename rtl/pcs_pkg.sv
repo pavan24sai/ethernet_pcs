@@ -68,7 +68,7 @@ package pcs_pkg;
 		POSITIVE = 1'b1
 	} disparity_t;
 	
-	// Special Code-Groups (K-codes) - from IEEE Table 36-2
+	// Special Code-Groups (K-codes) - from Table 36-2
 	typedef enum logic [9:0] {
 		K28_5_RD_NEG = 10'b0011111010,  // K28.5 RD- - comma pattern 
 		K28_5_RD_POS = 10'b1100000101,  // K28.5 RD+ - comma pattern
@@ -82,15 +82,92 @@ package pcs_pkg;
 		K30_7_RD_POS = 10'b1000010111   // K30.7 RD+ - /V/ Error Propagation
 	} special_codegroup_t;
 	
-	// Data Code-Groups for specific patterns - from IEEE Table 36-1
+	// Data Code-Groups for specific patterns - from Table 36-1
 	typedef enum logic [9:0] {
-		D21_5 = 10'b1010101010,  // D21.5 used in C1 config (disparity neutral)
-		D2_2_RD_NEG = 10'b1011010101,  // D2.2 RD- used in C2 config  
-		D2_2_RD_POS = 10'b0100100101,  // D2.2 RD+ used in C2 config
-		D5_6 = 10'b1010010110,  // D5.6 IDLE /I1/ (disparity neutral)
-		D16_2 = 10'b0100110101, // D16.2 IDLE /I2/ (disparity neutral)
-		D6_5 = 10'b0110011010,  // D6.5 LPI /LI1/ (disparity neutral) 
-		D26_4_RD_NEG = 10'b0101101101, // D26.4 RD- LPI /LI2/
-		D26_4_RD_POS = 10'b0101100010  // D26.4 RD+ LPI /LI2/
+		D0_0         	= 10'b0110001011,  // D0.0 used in early end detection
+		D21_5 			= 10'b1010101010,  // D21.5 used in C1 config (disparity neutral)
+		D2_2_RD_NEG 	= 10'b1011010101,  // D2.2 RD- used in C2 config  
+		D2_2_RD_POS 	= 10'b0100100101,  // D2.2 RD+ used in C2 config
+		D5_6	 		= 10'b1010010110,  // D5.6 IDLE /I1/ (disparity neutral)
+		D16_2 			= 10'b0100110101,  // D16.2 IDLE /I2/ (disparity neutral)
+		D6_5 			= 10'b0110011010,  // D6.5 LPI /LI1/ (disparity neutral) 
+		D26_4_RD_NEG 	= 10'b0101101101,  // D26.4 RD- LPI /LI2/
+		D26_4_RD_POS 	= 10'b0101100010   // D26.4 RD+ LPI /LI2/
 	} data_codegroup_t;
+	
+	// Receive Path State Machine States (Figure 36-7a/b/c) - 30 states
+    typedef enum logic [5:0] {
+        RX_LINK_FAILED          = 6'h00,
+        RX_WAIT_FOR_K           = 6'h01,
+        RX_K                    = 6'h02,
+        RX_CB                   = 6'h03,  // Config byte 1 received
+        RX_CC                   = 6'h04,  // Config byte 2 received
+        RX_CD                   = 6'h05,  // Config complete, expect K28.5
+        RX_IDLE_D               = 6'h06,
+        RX_CARRIER_DETECT       = 6'h07,
+        RX_FALSE_CARRIER        = 6'h08,
+        RX_INVALID              = 6'h09,
+        RX_START_OF_PACKET      = 6'h0A,
+        RX_RECEIVE              = 6'h0B,
+        RX_EARLY_END            = 6'h0C,
+        RX_TRI_RRI              = 6'h0D,
+        RX_TRR_EXTEND           = 6'h0E,
+        RX_EARLY_END_EXT        = 6'h0F,
+        RX_DATA                 = 6'h10,
+        RX_DATA_ERROR           = 6'h11,
+        RX_EPD2_CHECK_END       = 6'h12,
+        RX_PACKET_BURST_RRS     = 6'h13,
+        RX_EXTEND_ERR           = 6'h14,
+        RX_SLEEP                = 6'h15,
+        RX_START_TQ_TIMER       = 6'h16,
+        RX_LP_IDLE_D            = 6'h17,
+        RX_LPI_K                = 6'h18,
+        RX_QUIET                = 6'h19,
+        RX_WAKE                 = 6'h1A,
+        RX_WTF                  = 6'h1B,
+        RX_LINK_FAIL            = 6'h1C,
+        RX_WAKE_DONE            = 6'h1D
+    } rx_state_t;
+    
+    // check_end function return values Clause 36.2.5.1.4
+    typedef enum logic [3:0] {
+        CHECK_END_NONE          = 4'h0,   // No special pattern detected
+        CHECK_END_TRK           = 4'h1,   // /T/R/K28.5/ - Normal termination
+        CHECK_END_TRR           = 4'h2,   // /T/R/R/ - Error termination + extend
+        CHECK_END_RRR           = 4'h3,   // /R/R/R/ - Early extend with error
+        CHECK_END_RRS           = 4'h4,   // /R/R/S/ - Packet burst
+        CHECK_END_K_D_K         = 4'h5,   // /K28.5/D/K28.5/ - Early end error
+        CHECK_END_K_C_D         = 4'h6    // /K28.5/(D21.5|D2.2)/D0.0/ - Early end error
+    } check_end_t;
+	
+	// Signal Detect Status Values  
+	typedef enum logic {
+		SIGNAL_FAIL = 1'b0,
+		SIGNAL_OK   = 1'b1
+	} signal_detect_t;
+
+    // Synchronization status values for receive path
+    typedef enum logic {
+        SYNC_FAIL = 1'b0,
+        SYNC_OK   = 1'b1
+    } sync_status_t;
+	
+	// Timer state machine
+    typedef enum logic [1:0] {
+        TIMER_IDLE    = 2'b00,  // Timer not running
+        TIMER_RUNNING = 2'b01,  // Timer counting down
+        TIMER_DONE    = 2'b10   // Timer expired
+    } timer_state_t;
+
+	// GMII Standard Values for specific patterns
+	localparam logic [7:0] GMII_PREAMBLE       = 8'b01010101;  // 0x55
+	localparam logic [7:0] GMII_FALSE_CARRIER  = 8'b00001110;  // 0x0E  
+	localparam logic [7:0] GMII_CARRIER_EXTEND = 8'b00001111;  // 0x0F
+	localparam logic [7:0] GMII_EPD2_ERROR     = 8'b00011111;  // 0x1F
+	localparam logic [7:0] GMII_LPI_PATTERN    = 8'b00000001;  // 0x01
+
+	// Timer duration constants (for 1000BASE-T implementation)
+	localparam int TQ_TIMER_VALUE  = <NEED_TO_FIND>;
+	localparam int TW_TIMER_VALUE  = <NEED_TO_FIND>;
+	localparam int WF_TIMER_VALUE  = <NEED_TO_FIND>;
 endpackage
